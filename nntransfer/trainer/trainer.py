@@ -40,9 +40,6 @@ class Trainer:
         self.task_keys = dataloaders["train"].keys()
         self.optimizer, self.stop_closure, self.criterion = self.get_training_controls()
         self.lr_scheduler = self.prepare_lr_schedule()
-        self.main_loop_modules = [
-            globals().get(k)(trainer=self) for k in self.config.main_loop_modules
-        ]
 
         # Potentially reset parts of the model (after loading pretrained parameters)
         reset_params(self.model, self.config.reset)
@@ -78,6 +75,12 @@ class Trainer:
             scheduler=self.lr_scheduler,
             lr_decay_steps=self.config.lr_decay_steps,
         )
+
+    @property
+    def main_loop_modules(self):
+        return [
+            globals().get(k)(trainer=self) for k in self.config.main_loop_modules
+        ]
 
     def prepare_lr_schedule(self):
         lr_scheduler = None

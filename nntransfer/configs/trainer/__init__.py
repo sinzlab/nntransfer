@@ -1,2 +1,2 @@
 from .base import TrainerConfig
-from . import mixins
+from .mixins import *
