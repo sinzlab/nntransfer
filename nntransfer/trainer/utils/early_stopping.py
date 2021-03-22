@@ -67,69 +67,42 @@ def early_stopping(
                 epoch += 1
                 if tracker is not None:
                     tracker.log_objective(current_objective)
-
-                # if not tracker.check_isfinite():
-                #     print("Objective is not Finite. Stopping training")
-                #     finalize(model, best_state_saved, current_objective, best_objective)
-                #     return
                 yield epoch, current_objective
 
             current_objective = _objective()
 
-            # if a scheduler is defined, a .step with the current objective is all that is needed to reduce the LR
             if scheduler is not None:
-                if (config.scheduler == "adaptive") and (
-                    True
-                    # not config.scheduler_options.get("mtl")
-                ):  # only works sofar with one task but not with MTL
-                    # scheduler.step(list(current_objective.values())[0]['eval' if config.maximize else 'loss'])
+                if config.scheduler == "adaptive":
                     scheduler.step(current_objective)
                 elif config.scheduler == "manual":
                     scheduler.step()
 
-            def test_current_obj(obj, best_obj):
-                obj_key = "eval" if config.maximize else "loss"
-                result = [
-                    obj[task][obj_key] * maximize
-                    < best_obj[task][obj_key] * maximize - tolerance
-                    for task in obj.keys()
-                ]
-                return np.array(result)
-
-            # if (test_current_obj(current_objective, best_objective)).all():
             if maximize * current_objective < maximize * best_objective:
                 tracker.log_objective(
-                    patience_counter, keys=("Validation", "patience",)
+                    patience_counter,
+                    keys=(
+                        "Validation",
+                        "patience",
+                    ),
                 )
-                # print(
-                #     "Validation [{:03d}|{:02d}/{:02d}] ---> {}".format(
-                #         epoch, patience_counter, patience, current_objective
-                #     ),
-                #     flush=True,
-                # )
                 patience_counter = -1
                 best_objective = current_objective
             else:
                 patience_counter += 1
                 tracker.log_objective(
-                    patience_counter, keys=("Validation", "patience",)
+                    patience_counter,
+                    keys=(
+                        "Validation",
+                        "patience",
+                    ),
                 )
-                # print(
-                #     "Validation [{:03d}|{:02d}/{:02d}] -/-> {}".format(
-                #         epoch, patience_counter, patience, current_objective
-                #     ),
-                #     flush=True,
-                # )
             checkpointing.save(
-                epoch=epoch, score=current_objective, patience_counter=patience_counter,
-            )  # save model
+                epoch=epoch,
+                score=current_objective,
+                patience_counter=patience_counter,
+            )
 
         if (epoch < max_iter) & (lr_decay_steps > 1) & (repeat < lr_decay_steps):
-            if (config.scheduler == "adaptive") and (
-                False
-                # config.scheduler_options.get("mtl")
-            ):  # adaptive lr scheduling for mtl alongside early_stopping
-                scheduler.step()
             decay_lr()
 
         patience_counter = -1

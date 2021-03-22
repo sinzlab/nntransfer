@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 from nntransfer.analysis.plot import plot
 from nntransfer.tables.transfer import TransferredTrainedModel
-from neuralpredictors.tracking import AdvancedMultipleObjectiveTracker as Tracker
+from nntransfer.trainer.utils.tracking import AdvancedMultipleObjectiveTracker as Tracker
 
 
 class Analyzer:
