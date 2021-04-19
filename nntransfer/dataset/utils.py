@@ -105,13 +105,17 @@ def get_dataset(url: str, data_dir: str, dataset_cls: str) -> str:
     dataset_dir = os.path.join(data_dir, dataset_cls)
     finished_flag = os.path.join(dataset_dir, "finished_" + make_hash(url))
     if os.path.isdir(dataset_dir):
-        if dataset_cls in (
-            "TinyImageNet-C",
-            "CIFAR100-C",
-            "CIFAR10-C",
-            "ImageNet",
-            "TinyImageNet",
-        ) or os.path.exists(finished_flag):
+        if (
+            dataset_cls
+            in (
+                "TinyImageNet-C",
+                "CIFAR100-C",
+                "CIFAR10-C",
+                "ImageNet",
+                "TinyImageNet",
+            )
+            or os.path.exists(finished_flag)
+        ):
             print("Images already downloaded in {}".format(dataset_dir))
             return dataset_dir
     else:
@@ -126,15 +130,15 @@ def get_dataset(url: str, data_dir: str, dataset_cls: str) -> str:
             zip_ref.extractall(dataset_dir)
             extract_dir = os.path.join(dataset_dir, sorted(zip_ref.namelist())[0])
             zip_ref.close()
-        elif url.endswith(".tar"):
+        elif url.endswith(".tar") or url.endswith(".tar.gz"):
             tar_ref = tarfile.open(fileobj=BytesIO(r.content))
-            tar_ref.extractall(dataset_dir)
+            tar_ref.extractall(data_dir if dataset_cls == "MNIST" else dataset_dir)
             extract_dir = os.path.join(dataset_dir, sorted(tar_ref.getnames())[0])
             tar_ref.close()
         else:
             raise NotImplementedError("Unsupported dataset format.")
         # move to final destination
-        if dataset_cls in ("TinyImageNet-C", "CIFAR100-C", "CIFAR10-C","TinyImageNet"):
+        if dataset_cls in ("TinyImageNet-C", "CIFAR100-C", "CIFAR10-C", "TinyImageNet"):
             for content in os.listdir(extract_dir):
                 shutil.move(os.path.join(extract_dir, content), dataset_dir)
             shutil.rmtree(extract_dir)
