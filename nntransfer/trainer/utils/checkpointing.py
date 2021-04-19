@@ -5,7 +5,7 @@ import pickle as pkl
 
 import torch
 
-from neuralpredictors.training import copy_state
+from neuralpredictors.training.early_stopping import copy_state
 
 
 class Checkpointing:
@@ -137,12 +137,58 @@ class LocalCheckpointing(Checkpointing):
         return epoch, patience_counter
 
 
-class TemporaryCheckpointing(Checkpointing):
+class NoCheckpointing(Checkpointing):
     def __init__(
-        self, model, scheduler, tracker, chkpt_options, maximize_score, call_back=None
+        self,
+        model,
+        optimizer,
+        scheduler,
+        tracker,
+        chkpt_options,
+        maximize_score,
+        call_back=None,
+        hash=None,
     ):
         super().__init__(
-            model, scheduler, tracker, chkpt_options, maximize_score, call_back
+            model,
+            optimizer,
+            scheduler,
+            tracker,
+            chkpt_options,
+            maximize_score,
+            call_back,
+            hash,
+        )
+        # prepare state save
+
+    def save(self, epoch, score, patience_counter):
+        pass
+
+    def restore(self, restore_only_state=False, action="last"):
+        return 0, -1
+
+
+class TemporaryCheckpointing(Checkpointing):
+    def __init__(
+        self,
+        model,
+        optimizer,
+        scheduler,
+        tracker,
+        chkpt_options,
+        maximize_score,
+        call_back=None,
+        hash=None,
+    ):
+        super().__init__(
+            model,
+            optimizer,
+            scheduler,
+            tracker,
+            chkpt_options,
+            maximize_score,
+            call_back,
+            hash,
         )
         # prepare state save
         self.score_save = np.infty * -1 if maximize_score else np.infty
@@ -160,7 +206,7 @@ class TemporaryCheckpointing(Checkpointing):
         self.scheduler_save = copy_state(self.scheduler) if self.scheduler else {}
         self.tracker_save = copy_state(self.tracker)
 
-    def restore(self, restore_only_state=False):
+    def restore(self, restore_only_state=False, action="last"):
         if self.epoch_save > -1:
             self.model.load_state_dict(self.model_save)
             if not restore_only_state:

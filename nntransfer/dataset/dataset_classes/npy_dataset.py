@@ -28,6 +28,7 @@ class NpyDataset(VisionDataset):
             self.targets = np.load(os.path.join(self.root, targets))
         else:
             self.targets = targets
+        self.classes = torch.tensor(sorted(list(set(list(self.targets)))))
         self.targets = torch.from_numpy(self.targets).type(target_type)
         if end != 0:
             self.samples = torch.clone(self.samples[start:end])

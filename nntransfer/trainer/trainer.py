@@ -6,7 +6,7 @@ import torch
 from torch import optim, nn
 
 import nnfabrik as nnf
-from neuralpredictors.training import copy_state
+from neuralpredictors.training.early_stopping import copy_state
 from nnfabrik.utility.nn_helpers import load_state_dict
 
 from nntransfer.models.utils import (
@@ -32,7 +32,7 @@ class Trainer:
     def __init__(self, dataloaders, model, seed, uid, cb, **kwargs):
         self.config = TrainerConfig.from_dict(kwargs)
         self.uid = uid
-        self.model, self.device = nnf.utility.nn_helpers.move_to_device(model)
+        self.model, self.device = nnf.utility.nn_helpers.move_to_device(model, gpu=(not self.config.force_cpu))
         nnf.utility.nn_helpers.set_random_seed(seed)
         self.seed = seed
 
@@ -57,7 +57,7 @@ class Trainer:
             self.config.chkpt_options,
             self.config.maximize,
             partial(cb, uid=uid),
-            hash=nnf.utility.dj_helpers.make_hash(uid)
+            hash=nnf.utility.dj_helpers.make_hash(uid),
         )
         self.epoch_iterator = early_stopping(
             self.model,
@@ -78,9 +78,11 @@ class Trainer:
 
     @property
     def main_loop_modules(self):
-        return [
-            globals().get(k)(trainer=self) for k in self.config.main_loop_modules
-        ]
+        try:
+            return self._main_loop_modules
+        except AttributeError:
+            self._main_loop_modules = [globals().get(k)(trainer=self) for k in self.config.main_loop_modules]
+            return self._main_loop_modules
 
     def prepare_lr_schedule(self):
         lr_scheduler = None
@@ -106,7 +108,8 @@ class Trainer:
             import pytorch_warmup as warmup
 
             warmup_scheduler = warmup.LinearWarmup(
-                self.optimizer, warmup_period=self.config.lr_warmup,
+                self.optimizer,
+                warmup_period=self.config.lr_warmup,
             )
             lr_scheduler = SchedulerWrapper(lr_scheduler, warmup_scheduler)
         return lr_scheduler
@@ -120,6 +123,7 @@ class Trainer:
         cycler_args={},
         module_options=None,
         return_outputs=False,
+        epoch_tqdm=None,
     ):
         reset_state_dict = {}
         if mode == "Training":
@@ -141,7 +145,9 @@ class Trainer:
             record_grad = False
         module_options = {} if module_options is None else module_options
         self.model.train() if train_mode else self.model.eval()
-        set_bn_to_eval(self.model, layers=self.config.freeze, train_mode=batch_norm_train_mode)
+        set_bn_to_eval(
+            self.model, layers=self.config.freeze, train_mode=batch_norm_train_mode
+        )
         collected_outputs = []
         data_cycler = globals().get(cycler)(data_loader, **cycler_args)
 
@@ -182,7 +188,10 @@ class Trainer:
                     )
 
                 loss = self.compute_loss(mode, task_key, loss, outputs, targets)
-                self.tracker.display_log(tqdm_iterator=t, keys=(mode,))
+                if epoch_tqdm and self.config.show_epoch_progress and mode == "Training":
+                    self.tracker.display_log(tqdm_iterator=epoch_tqdm, key=(mode,))
+                else:
+                    self.tracker.display_log(tqdm_iterator=t, key=(mode,))
                 if train_mode:
                     # Backward
                     loss.backward()
@@ -227,16 +236,22 @@ class Trainer:
             tqdm, "_instances"
         ):  # To have tqdm output without line-breaks between steps
             tqdm._instances.clear()
-        for epoch, dev_eval in tqdm(
+        with tqdm(
             iterable=self.epoch_iterator,
             total=self.config.max_iter,
             disable=(not self.config.show_epoch_progress),
-        ):
-            self.tracker.log_objective(self.optimizer.param_groups[0]["lr"], ("LR",))
-            self.main_loop(
-                data_loader=self.data_loaders["train"], mode="Training", epoch=epoch,
-            )
-            self.tracker.start_epoch()
+        ) as epoch_tqdm:
+            for epoch, dev_eval in epoch_tqdm:
+                self.tracker.log_objective(
+                    self.optimizer.param_groups[0]["lr"], ("LR",)
+                )
+                self.main_loop(
+                    data_loader=self.data_loaders["train"],
+                    mode="Training",
+                    epoch=epoch,
+                    epoch_tqdm=epoch_tqdm,
+                )
+                self.tracker.start_epoch()  #TODO: can I move this up?
 
         if self.config.lottery_ticket or epoch == 0:
             for module in self.main_loop_modules:
@@ -262,7 +277,12 @@ class Trainer:
         raise NotImplementedError
 
     def compute_loss(
-        self, mode, data_key, loss, outputs, targets,
+        self,
+        mode,
+        data_key,
+        loss,
+        outputs,
+        targets,
     ):
         raise NotImplementedError
 

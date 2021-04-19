@@ -8,6 +8,7 @@ from torch.utils.data.sampler import SubsetRandomSampler
 from torchvision import datasets
 from nntransfer.configs.dataset.image import ImageDatasetConfig
 from nntransfer.dataset.utils import get_dataset
+from .dataset_filters import *
 
 DATASET_URLS = {
     "CIFAR10-C": "https://zenodo.org/record/2535967/files/CIFAR-10-C.tar",

@@ -80,7 +80,7 @@ def early_stopping(
             if maximize * current_objective < maximize * best_objective:
                 tracker.log_objective(
                     patience_counter,
-                    keys=(
+                    key=(
                         "Validation",
                         "patience",
                     ),
@@ -91,7 +91,7 @@ def early_stopping(
                 patience_counter += 1
                 tracker.log_objective(
                     patience_counter,
-                    keys=(
+                    key=(
                         "Validation",
                         "patience",
                     ),

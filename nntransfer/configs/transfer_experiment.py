@@ -75,3 +75,6 @@ class TransferExperiment(Experiment):
             :obj:`Dict[str, any]`: Dictionary of all the attributes that make up this configuration instance,
         """
         return [c.to_dict() for c in self.configs]
+
+    def __len__(self):
+        return len(self.configs)

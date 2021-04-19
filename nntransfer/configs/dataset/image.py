@@ -39,7 +39,8 @@ class ImageDatasetConfig(DatasetConfig):
         self.apply_grayscale: bool = False
         self.apply_noise: Dict = {}
         self.convert_to_rgb: bool = False
-        self.input_size: int = 32
+        self.input_width: int = 32
+        self.input_height: int = 32
         self.add_corrupted_test: bool = False
         self.add_stylized_test: bool = False
         self.use_c_test_as_val: bool = False

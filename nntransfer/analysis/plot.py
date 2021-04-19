@@ -15,7 +15,7 @@ def plot(plot_function):
         ncols = kwargs.pop("ncols", 1)
         gridspec_kw = kwargs.pop("gridspec_kw", None)
         style = kwargs.pop("style", "lighttalk")
-        legend_outside = kwargs.pop("legend_outside", True)
+        legend_outside = kwargs.pop("legend_outside", False)
         title = kwargs.pop("title", "")
         x_label = kwargs.pop("x_label", "")
         y_label = kwargs.pop("y_label", "")
@@ -33,7 +33,7 @@ def plot(plot_function):
             subplots=(ncols, nrows),
             gridspec_kw=gridspec_kw,
         )
-        fs = (fs[0], fs[1] * nrows / (ncols)  * figure_heigh_scale)
+        fs = (fs[0], fs[1] * nrows / (ncols) * figure_heigh_scale)
         sns.set()
 
         if "light" in style:
@@ -44,75 +44,72 @@ def plot(plot_function):
             plt.style.use("dark_background")
         if "talk" in style or "beamer" in style:
             sns.set_context("talk")
-            tex_font = "sans"
-            small_fontsize = 10
-            xsmall_fontsize = 9
-            normal_fontsize = 12
-            large_fontsize = 13
+            font = "sans-serif"
+            small_fontsize = 13
+            xsmall_fontsize = 13
+            normal_fontsize = 14
+            large_fontsize = 17
         else:
             sns.set_context("paper")
-            tex_font = "serif"
+            font = "serif"
             small_fontsize = 8
             xsmall_fontsize = 7
             normal_fontsize = 10
             large_fontsize = 12
-        if "tex" in style:
-            sns.set_style(
-                "whitegrid",
-                {
-                    "axes.edgecolor": "0.1",
-                    "xtick.bottom": True,
-                    "xtick.top": False,
-                    "ytick.left": True,
-                    "ytick.right": False,
-                },
-            )
-            nice_fonts = {
-                # Use LaTeX to write all text
-                "text.usetex": True,
-                "font.family": tex_font,
-                # Use 10pt font in plots, to match 10pt font in document
-                "axes.labelsize": normal_fontsize,
-                "font.size": normal_fontsize,
-                # Make the legend/label fonts a little smaller
-                "legend.fontsize": xsmall_fontsize,
-                "xtick.labelsize": small_fontsize,
-                "ytick.labelsize": small_fontsize,
-            }
-            mpl.rcParams.update(nice_fonts)
-            mpl.use("pgf")
-            mpl.rcParams.update(
-                {
-                    "pgf.texsystem": "pdflatex",
-                    "font.family": tex_font,
-                    "text.usetex": True,
-                    "pgf.rcfonts": False,
-                }
-            )
-        fig, ax = plt.subplots(
-            nrows,
-            ncols,
-            figsize=fs,
-            # dpi=dpi,
-            sharex=kwargs.pop("sharex", False),
-            sharey=kwargs.pop("sharey", False),
-            gridspec_kw=gridspec_kw,
+        sns.set_style(
+            "whitegrid",
+            {
+                "axes.edgecolor": "0.1",
+                "xtick.bottom": True,
+                "xtick.top": False,
+                "ytick.left": True,
+                "ytick.right": False,
+            },
         )
+        nice_fonts = {
+            "font.family": font,
+            "axes.labelsize": normal_fontsize,
+            "font.size": normal_fontsize,
+            "legend.fontsize": xsmall_fontsize,
+            "xtick.labelsize": small_fontsize,
+            "ytick.labelsize": small_fontsize,
+        }
+        if "tex" in style:
+            nice_fonts["text.usetex"] = True
+            nice_fonts["pgf.rcfonts"] = False
+            nice_fonts["pgf.texsystem"] = "pdflatex"
+            mpl.use("pgf")
+        mpl.rcParams.update(nice_fonts)
+
+        fig = kwargs.pop("fig", None)
+        ax = kwargs.pop("ax", None)
+
+        if not fig or not ax:
+            fig, ax = plt.subplots(
+                nrows,
+                ncols,
+                figsize=fs,
+                dpi=kwargs.pop("dpi", None),
+                sharex=kwargs.pop("sharex", False),
+                sharey=kwargs.pop("sharey", False),
+                gridspec_kw=gridspec_kw,
+            )
+
+            if nrows == 1:
+                ax = [ax]
+            if ncols == 1:
+                for i in range(len(ax)):
+                    ax[i] = [ax[i]]
+
         plt.grid(True, linestyle=":")
-        if nrows == 1:
-            ax = [ax]
-        if ncols == 1:
-            for i in range(len(ax)):
-                ax[i] = [ax[i]]
 
         # execute the actual plotting
         plot_function(*args, fig=fig, ax=ax, **kwargs)
 
-
         if panel_labels:
             for i in range(len(ax)):
                 for j in range(len(ax[i])):
-                    label = string.ascii_uppercase[i*len(ax[i])+j]
+                    label = string.ascii_uppercase[i * len(ax[i]) + j]
                     ax[i][j].text(
                         0.04,
                         1.00,
@@ -134,16 +131,25 @@ def plot(plot_function):
             plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
         if despine:
             sns.despine(offset=3, trim=False)
+        legend_args = {
+            "fontsize": xsmall_fontsize,
+            "title_fontsize": f"{small_fontsize}",
+            "frameon": False,
+            "borderaxespad": 0.0,
+            "loc": "best",
+        }
         if legend_outside:
-            plt.legend(fontsize=xsmall_fontsize, title_fontsize=f"{small_fontsize}", frameon=False)
-            plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0, frameon=False)
+            legend_args.update({"bbox_to_anchor": (1.05, 1), "loc": 2})
+        plt.legend(**legend_args)
 
         if save:
             save_plot(
                 fig,
                 save + "_" + style,
-                types=("png", "pdf", "pgf") if "tex" in style else ("png","pdf"),
+                types=("png", "pdf", "pgf") if "tex" in style else ("png", "pdf"),
             )
+
+        return fig, ax
 
     return plot_wrapper
 

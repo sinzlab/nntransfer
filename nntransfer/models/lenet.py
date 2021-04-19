@@ -10,15 +10,19 @@ class LeNet5(
     def __init__(
         self,
         num_classes: int = 10,
-        input_size: int = 28,
+        input_width: int = 28,
+        input_height: int = 28,
         input_channels: int = 1,
         dropout: float = 0.0,
     ):
         super(LeNet5, self).__init__()
-        conv_out_size = int(
-            ((((input_size - 3) + 1) / 2 - 3) + 1) / 2
+        conv_out_width = int(
+            ((((input_width - 3) + 1) / 2 - 3) + 1) / 2
         )  # [(W-K+2P)/S]+1 / MP
-        self.flat_feature_size = (conv_out_size ** 2) * 16
+        conv_out_height = int(
+            ((((input_height - 3) + 1) / 2 - 3) + 1) / 2
+        )  # [(H-K+2P)/S]+1 / MP
+        self.flat_feature_size = (conv_out_height * conv_out_width) * 16
         # 1 input image channel, 6 output channels, 3x3 square convolution
         # kernel
         self.conv1 = nn.Conv2d(input_channels, 6, 3)
@@ -52,16 +56,17 @@ class LeNet300100(nn.Module):
     def __init__(
         self,
         num_classes: int = 10,
-        input_size: int = 28,
+        input_width: int = 28,
+        input_height: int = 28,
         input_channels: int = 1,
         dropout: float = 0.0,
     ):
         super(LeNet300100, self).__init__()
-        self.fc1 = nn.Linear(input_size * input_size * input_channels, 300)
+        self.flat_input_size = input_width * input_height * input_channels
+        self.fc1 = nn.Linear(self.flat_input_size, 300)
         self.fc2 = nn.Linear(300, 100)
         self.fc3 = nn.Linear(100, num_classes)
         self.dropout = nn.Dropout(p=dropout) if dropout else None
-        self.flat_input_size = input_size * input_size * input_channels
 
     def forward(self, x):
         x = x.view(x.size(0), self.flat_input_size)
@@ -84,7 +89,8 @@ def lenet_builder(seed: int, config):
     torch.cuda.manual_seed(seed)
     model = lenet(
         num_classes=config.num_classes,
-        input_size=config.input_size,
+        input_width=config.input_width,
+        input_height=config.input_height,
         input_channels=config.input_channels,
         dropout=config.dropout,
     )

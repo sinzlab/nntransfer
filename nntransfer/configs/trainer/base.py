@@ -19,7 +19,6 @@ class TrainerConfig(BaseConfig):
         }
         self.lr_decay: float = 0.8
         self.lr_warmup: int = 0
-        self.epoch: int = 0
         self.scheduler: str = "manual"  # or "adaptive"
         self.chkpt_options: Dict = {
             "save_every_n": 1,
