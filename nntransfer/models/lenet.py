@@ -16,6 +16,7 @@ class LeNet5(
         dropout: float = 0.0,
     ):
         super(LeNet5, self).__init__()
+        self.input_size = (input_height, input_width)
         conv_out_width = int(
             ((((input_width - 3) + 1) / 2 - 3) + 1) / 2
         )  # [(W-K+2P)/S]+1 / MP
@@ -62,6 +63,7 @@ class LeNet300100(nn.Module):
         dropout: float = 0.0,
     ):
         super(LeNet300100, self).__init__()
+        self.input_size = (input_height, input_width)
         self.flat_input_size = input_width * input_height * input_channels
         self.fc1 = nn.Linear(self.flat_input_size, 300)
         self.fc2 = nn.Linear(300, 100)

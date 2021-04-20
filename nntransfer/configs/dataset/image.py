@@ -52,10 +52,10 @@ class ImageDatasetConfig(DatasetConfig):
             f"{self.dataset_sub_cls}_{self.bias}" if self.bias else self.dataset_cls
         )
         dataset_id += "_bw" if self.apply_grayscale else ""
-        if not self.train_data_mean:
-            self.train_data_mean: Tuple[float] = self.data_mean_defaults[dataset_id]
-        if not self.train_data_std:
-            self.train_data_std: Tuple[float] = self.data_std_defaults[dataset_id]
+        if not self.train_data_mean and self.apply_normalization:
+            self.train_data_mean: Tuple[float] = self.data_mean_defaults.get(dataset_id)
+        if not self.train_data_std and self.apply_normalization:
+            self.train_data_std: Tuple[float] = self.data_std_defaults.get(dataset_id)
 
         super().__init__(**kwargs)
 
