@@ -114,8 +114,13 @@ def set_bn_to_eval(model, layers=None, train_mode=False):
                 model[layer].apply(bn_set)
 
 
-def concatenate_flattened(tensor_list) -> torch.Tensor:
+def concatenate_flattened(tensor_list, keep_first_dim=False) -> torch.Tensor:
     """
     Given list of tensors, flattens each and concatenates their values.
     """
-    return torch.cat([torch.reshape(t, (-1,)) for t in tensor_list])
+    if keep_first_dim:
+        return torch.cat(
+            [torch.reshape(t, (t.shape[0], -1)) for t in tensor_list], dim=1
+        )
+    else:
+        return torch.cat([torch.reshape(t, (-1,)) for t in tensor_list])
