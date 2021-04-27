@@ -26,6 +26,14 @@ def plot(plot_function):
         figure_heigh_scale = kwargs.pop("figure_height_scale", 1.0)
         tight = kwargs.pop("tight", False)
 
+
+        fig = kwargs.pop("fig", None)
+        ax = kwargs.pop("ax", None)
+
+        if fig and ax:
+            plot_function(*args, fig=fig, ax=ax, **kwargs)
+            return fig, ax
+
         fs = set_size(
             style=style,
             ratio=kwargs.pop("ratio", None),
@@ -78,30 +86,27 @@ def plot(plot_function):
             nice_fonts["text.usetex"] = True
             nice_fonts["pgf.rcfonts"] = False
             nice_fonts["pgf.texsystem"] = "pdflatex"
+            mpl.rcParams['axes.unicode_minus'] = False
             mpl.use("pgf")
         mpl.rcParams.update(nice_fonts)
 
-        fig = kwargs.pop("fig", None)
-        ax = kwargs.pop("ax", None)
+        fig, ax = plt.subplots(
+            nrows,
+            ncols,
+            figsize=fs,
+            dpi=kwargs.pop("dpi", None),
+            sharex=kwargs.pop("sharex", False),
+            sharey=kwargs.pop("sharey", False),
+            gridspec_kw=gridspec_kw,
+        )
 
-        if not fig or not ax:
-            fig, ax = plt.subplots(
-                nrows,
-                ncols,
-                figsize=fs,
-                dpi=kwargs.pop("dpi", None),
-                sharex=kwargs.pop("sharex", False),
-                sharey=kwargs.pop("sharey", False),
-                gridspec_kw=gridspec_kw,
-            )
+        if nrows == 1:
+            ax = [ax]
+        if ncols == 1:
+            for i in range(len(ax)):
+                ax[i] = [ax[i]]
 
-            if nrows == 1:
-                ax = [ax]
-            if ncols == 1:
-                for i in range(len(ax)):
-                    ax[i] = [ax[i]]
-
-        plt.grid(True, linestyle=":")
+        plt.grid(True, linestyle=":", linewidth=0.5)
 
         # execute the actual plotting
         plot_function(*args, fig=fig, ax=ax, **kwargs)

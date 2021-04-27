@@ -118,6 +118,7 @@ def concatenate_flattened(tensor_list, keep_first_dim=False) -> torch.Tensor:
     """
     Given list of tensors, flattens each and concatenates their values.
     """
+    tensor_list = [t for t in tensor_list if t is not None]
     if keep_first_dim:
         return torch.cat(
             [torch.reshape(t, (t.shape[0], -1)) for t in tensor_list], dim=1
