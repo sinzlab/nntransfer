@@ -134,5 +134,6 @@ def stringify(x):
         x = ".".join(["{}_{}".format(k, v) for k, v in x.items()])
     return str(x)
 
+
 def arctanh(x):
     return 0.5 * torch.log((1 + x) / (1 - x))

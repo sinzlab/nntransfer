@@ -194,7 +194,8 @@ class Trainer:
                     self.tracker.display_log(tqdm_iterator=t, key=(mode,))
                 if train_mode:
                     # Backward
-                    loss.backward()
+                    if not (self.config.ignore_main_loss and task_key in ("img_classification","regression")):
+                        loss.backward()
                     for module in self.main_loop_modules:
                         module.post_backward(self.model)
                     if (
