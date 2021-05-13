@@ -33,6 +33,8 @@ class LocallyConnected2d(nn.Module):
             self.register_parameter("bias", None)
         self.kernel_size = _pair(kernel_size)
         self.stride = _pair(stride)
+        self.padding = 0
+        self.dilation = 1
 
     def forward(self, x):
         _, c, h, w = x.size()

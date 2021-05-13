@@ -14,6 +14,7 @@ from nntransfer.models.utils import (
     set_bn_to_eval,
     weight_reset,
     reset_params,
+    set_dropout_to_eval,
 )
 from nntransfer.configs.trainer import TrainerConfig
 
@@ -32,7 +33,9 @@ class Trainer:
     def __init__(self, dataloaders, model, seed, uid, cb, **kwargs):
         self.config = TrainerConfig.from_dict(kwargs)
         self.uid = uid
-        self.model, self.device = nnf.utility.nn_helpers.move_to_device(model, gpu=(not self.config.force_cpu))
+        self.model, self.device = nnf.utility.nn_helpers.move_to_device(
+            model, gpu=(not self.config.force_cpu)
+        )
         nnf.utility.nn_helpers.set_random_seed(seed)
         self.seed = seed
 
@@ -81,7 +84,9 @@ class Trainer:
         try:
             return self._main_loop_modules
         except AttributeError:
-            self._main_loop_modules = [globals().get(k)(trainer=self) for k in self.config.main_loop_modules]
+            self._main_loop_modules = [
+                globals().get(k)(trainer=self) for k in self.config.main_loop_modules
+            ]
             return self._main_loop_modules
 
     def prepare_lr_schedule(self):
@@ -129,18 +134,27 @@ class Trainer:
         if mode == "Training":
             train_mode = True
             batch_norm_train_mode = not self.config.freeze_bn
+            dropout_train_mode = True
             record_grad = True
         elif "BN" in mode:
             train_mode = False
             batch_norm_train_mode = True
+            dropout_train_mode = False
             reset_state_dict = copy_state(self.model)
             record_grad = False
         elif mode == "Generation":
             train_mode = False
             batch_norm_train_mode = False
+            dropout_train_mode = False
             record_grad = True
+        elif mode == "MC-Dropout":
+            train_mode = False
+            batch_norm_train_mode = False
+            dropout_train_mode = True
+            record_grad = False
         else:
             train_mode = False
+            dropout_train_mode = False
             batch_norm_train_mode = False
             record_grad = False
         module_options = {} if module_options is None else module_options
@@ -148,6 +162,7 @@ class Trainer:
         set_bn_to_eval(
             self.model, layers=self.config.freeze, train_mode=batch_norm_train_mode
         )
+        set_dropout_to_eval(self.model, train_mode=dropout_train_mode)
         collected_outputs = []
         data_cycler = globals().get(cycler)(data_loader, **cycler_args)
 
@@ -168,6 +183,7 @@ class Trainer:
                 # Pre-Forward
                 loss = torch.zeros(1, device=self.device)
                 inputs, targets, task_key, _ = self.move_data(batch_data)
+                # print("Targets", task_key, targets)
                 shared_memory = {}  # e.g. to remember where which noise was applied
                 model_ = self.model
                 for module in self.main_loop_modules:
@@ -188,13 +204,20 @@ class Trainer:
                     )
 
                 loss = self.compute_loss(mode, task_key, loss, outputs, targets)
-                if epoch_tqdm and self.config.show_epoch_progress and mode == "Training":
+                if (
+                    epoch_tqdm
+                    and self.config.show_epoch_progress
+                    and mode == "Training"
+                ):
                     self.tracker.display_log(tqdm_iterator=epoch_tqdm, key=(mode,))
                 else:
                     self.tracker.display_log(tqdm_iterator=t, key=(mode,))
                 if train_mode:
                     # Backward
-                    if not (self.config.ignore_main_loss and task_key in ("img_classification","regression")):
+                    if not (
+                        self.config.ignore_main_loss
+                        and task_key in ("img_classification", "regression")
+                    ):
                         loss.backward()
                     for module in self.main_loop_modules:
                         module.post_backward(self.model)
@@ -252,7 +275,7 @@ class Trainer:
                     epoch=epoch,
                     epoch_tqdm=epoch_tqdm,
                 )
-                self.tracker.start_epoch()  #TODO: can I move this up?
+                self.tracker.start_epoch()  # TODO: can I move this up?
 
         if self.config.lottery_ticket or epoch == 0:
             for module in self.main_loop_modules:

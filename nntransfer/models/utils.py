@@ -91,6 +91,17 @@ def get_model_parameters(model):
     return total_parameters
 
 
+def _set_dropout_to_eval(m, train_mode=False):
+    classname = m.__class__.__name__
+    if "Dropout" in classname:
+        m.train(train_mode)
+
+def set_dropout_to_eval(model, train_mode=False):
+    dropout_set = partial(_set_dropout_to_eval, train_mode=train_mode)
+    model = model.module if isinstance(model, nn.DataParallel) else model
+    model.apply(dropout_set)
+
+
 def _set_bn_to_eval(m, train_mode=False):
     classname = m.__class__.__name__
     if "BatchNorm" in classname:
