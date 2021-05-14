@@ -78,7 +78,7 @@ def plot(plot_function):
             "font.family": font,
             "axes.labelsize": normal_fontsize,
             "font.size": normal_fontsize,
-            "legend.fontsize": normal_fontsize,
+            "legend.fontsize": small_fontsize,
             "xtick.labelsize": small_fontsize,
             "ytick.labelsize": small_fontsize,
         }

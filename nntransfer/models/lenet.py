@@ -132,7 +132,7 @@ class LeNet300100(nn.Module):
         input_height: int = 28,
         input_channels: int = 1,
         dropout: float = 0.0,
-        core_type: str = "fc",
+        core: str = "fc",
     ):
         super(LeNet300100, self).__init__()
         self.input_size = (input_height, input_width)
