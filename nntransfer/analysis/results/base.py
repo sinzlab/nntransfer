@@ -15,6 +15,8 @@ class Analyzer:
         # Select data:
         for description, config in configs.items():
             level = 0
+            entry_complete = True
+            entry = {}
             while True:
                 restriction = config.get_restrictions(level)
                 if not restriction:
@@ -23,13 +25,12 @@ class Analyzer:
                 if restricted:  # could be empty if entry is not computed yet
                     fetch_res = restricted.fetch1("output")
                     if fetch_res:  # could be a data generation step (no output)
-                        if description not in self.data:
-                            self.data[description] = {
-                                level: Tracker.from_dict(fetch_res)
-                            }
-                        else:
-                            self.data[description][level] = Tracker.from_dict(fetch_res)
+                        entry[level] = Tracker.from_dict(fetch_res)
+                else:
+                    entry_complete = False
                 level += 1
+            if entry_complete:
+                self.data[description] = entry
 
     @plot
     def plot_progress_line(self, to_plot, fig=None, ax=None, level=0, **kwargs):
