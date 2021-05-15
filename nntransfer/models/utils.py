@@ -4,6 +4,36 @@ import torch
 from torch import nn
 from torchvision.models.resnet import Bottleneck, BasicBlock
 from nntransfer.models.resnet import ResNet
+from nntransfer.models.wrappers import IntermediateLayerGetter
+
+
+def copy_ensemble_param_to_buffer(model, ensemble_iteration=0):
+    if ensemble_iteration is None:
+        return
+    model = model.module if isinstance(model, nn.DataParallel) else model
+    model = model._model if isinstance(model, IntermediateLayerGetter) else model
+    for n, p in model.named_parameters():
+        if p.requires_grad:
+            n = n.replace(".", "__")
+            model.register_buffer(
+                f"{n}_ensemble_{ensemble_iteration}",
+                p.detach().clone(),
+            )
+            print("cloning", n)
+
+
+def copy_ensemble_buffer_to_param(model, ensemble_iteration=0):
+    if not ensemble_iteration:
+        return
+    model = model.module if isinstance(model, nn.DataParallel) else model
+    model = model._model if isinstance(model, IntermediateLayerGetter) else model
+    for n, p in model.named_parameters():
+        if p.requires_grad:
+            n = n.replace(".", "__")
+            p.data = model.__getattribute__(
+                f"{n}_ensemble_{ensemble_iteration}",
+            )
+            print("copying", n)
 
 
 def reset_params(model, reset=None):
@@ -95,6 +125,7 @@ def _set_dropout_to_eval(m, train_mode=False):
     classname = m.__class__.__name__
     if "Dropout" in classname:
         m.train(train_mode)
+
 
 def set_dropout_to_eval(model, train_mode=False):
     dropout_set = partial(_set_dropout_to_eval, train_mode=train_mode)

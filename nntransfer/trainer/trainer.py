@@ -14,7 +14,7 @@ from nntransfer.models.utils import (
     set_bn_to_eval,
     weight_reset,
     reset_params,
-    set_dropout_to_eval,
+    set_dropout_to_eval, copy_ensemble_param_to_buffer,
 )
 from nntransfer.configs.trainer import TrainerConfig
 
@@ -204,13 +204,7 @@ class Trainer:
                     )
 
                 loss = self.compute_loss(mode, task_key, loss, outputs, targets)
-                if (
-                    epoch_tqdm
-                    and self.config.show_epoch_progress
-                    and mode == "Training"
-                ):
-                    self.tracker.display_log(tqdm_iterator=epoch_tqdm, key=(mode,))
-                else:
+                if not self.config.show_epoch_progress or not mode not in ("Validation","Training"):
                     self.tracker.display_log(tqdm_iterator=t, key=(mode,))
                 if train_mode:
                     # Backward
@@ -225,6 +219,10 @@ class Trainer:
                         not self.config.optim_step_count
                         or (batch_idx + 1) % self.config.optim_step_count == 0
                     ):
+                        if epoch_tqdm and self.config.show_epoch_progress:
+                            self.tracker.display_log(
+                                tqdm_iterator=epoch_tqdm, key=(mode,)
+                            )
                         self.optimizer.step()
                         for module in self.main_loop_modules:
                             module.post_optimizer(self.model)
@@ -284,6 +282,9 @@ class Trainer:
         #     self.transfer_model()
 
         test_result = self.test_final_model(epoch)
+
+        copy_ensemble_param_to_buffer(self.model, self.config.ensemble_iteration)
+
         return (
             test_result,
             self.tracker.state_dict(),
