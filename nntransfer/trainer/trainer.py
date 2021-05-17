@@ -14,7 +14,8 @@ from nntransfer.models.utils import (
     set_bn_to_eval,
     weight_reset,
     reset_params,
-    set_dropout_to_eval, copy_ensemble_param_to_buffer,
+    set_dropout_to_eval,
+    copy_ensemble_param_to_buffer,
 )
 from nntransfer.configs.trainer import TrainerConfig
 
@@ -204,7 +205,10 @@ class Trainer:
                     )
 
                 loss = self.compute_loss(mode, task_key, loss, outputs, targets)
-                if not self.config.show_epoch_progress or not mode not in ("Validation","Training"):
+                if not self.config.show_epoch_progress or not mode not in (
+                    "Validation",
+                    "Training",
+                ):
                     self.tracker.display_log(tqdm_iterator=t, key=(mode,))
                 if train_mode:
                     # Backward
@@ -253,7 +257,6 @@ class Trainer:
     def train(self):
         # train over epochs
         epoch = 0
-        self.tracker.start_epoch()
         if hasattr(
             tqdm, "_instances"
         ):  # To have tqdm output without line-breaks between steps
@@ -264,6 +267,9 @@ class Trainer:
             disable=(not self.config.show_epoch_progress),
         ) as epoch_tqdm:
             for epoch, dev_eval in epoch_tqdm:
+                self.tracker.start_epoch(
+                    append_epoch=not self.config.show_epoch_progress
+                )
                 self.tracker.log_objective(
                     self.optimizer.param_groups[0]["lr"], ("LR",)
                 )
@@ -273,7 +279,6 @@ class Trainer:
                     epoch=epoch,
                     epoch_tqdm=epoch_tqdm,
                 )
-                self.tracker.start_epoch()  # TODO: can I move this up?
 
         if self.config.lottery_ticket or epoch == 0:
             for module in self.main_loop_modules:
