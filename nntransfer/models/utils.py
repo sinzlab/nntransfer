@@ -23,14 +23,12 @@ def copy_ensemble_param_to_buffer(model, ensemble_iteration=0):
 
 
 def copy_ensemble_buffer_to_param(model, ensemble_iteration=0):
-    if not ensemble_iteration:
-        return
     model = model.module if isinstance(model, nn.DataParallel) else model
     model = model._model if isinstance(model, IntermediateLayerGetter) else model
     for n, p in model.named_parameters():
         if p.requires_grad:
             n = n.replace(".", "__")
-            p.data = model.__getattribute__(
+            p.data = model._buffers.get(
                 f"{n}_ensemble_{ensemble_iteration}",
             )
             print("copying", n)
