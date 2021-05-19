@@ -34,4 +34,4 @@ class ParallelDataset(Dataset):
         return sources, targets
 
     def __len__(self):
-        return len(next(iter(self.target_datasets)))
+        return len(next(iter(self.target_datasets.values())))
