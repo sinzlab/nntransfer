@@ -28,7 +28,7 @@ from .utils.early_stopping import early_stopping
 
 class Trainer:
     checkpointing_cls = (
-        RemoteCheckpointing  # Open to chose between local and remote checkpointing
+        LocalCheckpointing  # Open to chose between local and remote checkpointing
     )
 
     def __init__(self, dataloaders, model, seed, uid, cb, **kwargs):
