@@ -33,6 +33,7 @@ class Trainer:
 
     def __init__(self, dataloaders, model, seed, uid, cb, **kwargs):
         self.config = TrainerConfig.from_dict(kwargs)
+        print(self.config)
         self.uid = uid
         self.model, self.device = nnf.utility.nn_helpers.move_to_device(
             model, gpu=(not self.config.force_cpu)
