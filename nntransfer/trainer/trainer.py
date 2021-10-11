@@ -6,6 +6,7 @@ import torch
 from torch import optim, nn
 
 import nnfabrik as nnf
+from nnfabrik.builder import resolve_model
 from neuralpredictors.training.early_stopping import copy_state
 from nnfabrik.utility.nn_helpers import load_state_dict
 
@@ -38,6 +39,17 @@ class Trainer:
         self.model, self.device = nnf.utility.nn_helpers.move_to_device(
             model, gpu=(not self.config.force_cpu)
         )
+        if self.config.student_model:
+            self.teacher_model = self.model
+            model_fn = resolve_model(self.config.student_model["fn"])
+            self.model = model_fn(dataloaders, seed, **self.config.student_model)
+            self.model = self.model.to(self.device)
+            freeze_params(self.teacher_model, "all")
+            self.teacher_model.eval()
+        else:
+            self.teacher_model = None
+        print("Student: ", self.model)
+        print("Teacher: ", self.teacher_model)
         nnf.utility.nn_helpers.set_random_seed(seed)
         self.seed = seed
 
@@ -51,6 +63,11 @@ class Trainer:
         # Potentially freeze parts of the model
         freeze_params(self.model, self.config.freeze, self.config.readout_name)
 
+        if self.config.switch_teacher:
+            self.model, self.teacher_model = (
+                self.teacher_model,
+                self.model,
+            )
         # Prepare iterator for training
         print("==> Starting model {}".format(self.config.comment), flush=True)
         self.train_stats = []
@@ -135,7 +152,7 @@ class Trainer:
         reset_state_dict = {}
         if mode == "Training":
             train_mode = True
-            batch_norm_train_mode = not self.config.freeze_bn
+            batch_norm_train_mode = self.config.freeze_bn is None
             dropout_train_mode = True
             record_grad = True
         elif "BN" in mode:
@@ -162,9 +179,12 @@ class Trainer:
         module_options = {} if module_options is None else module_options
         self.model.train() if train_mode else self.model.eval()
         set_bn_to_eval(
-            self.model, layers=self.config.freeze, train_mode=batch_norm_train_mode
+            self.model, layers=self.config.freeze_bn, train_mode=batch_norm_train_mode
         )
-        set_dropout_to_eval(self.model, train_mode=dropout_train_mode)
+        set_dropout_to_eval(
+            self.model,
+            train_mode=dropout_train_mode and (not self.config.deactivate_dropout),
+        )
         collected_outputs = []
         data_cycler = globals().get(cycler)(data_loader, **cycler_args)
 
@@ -272,7 +292,11 @@ class Trainer:
                     append_epoch=not self.config.show_epoch_progress
                 )
                 self.tracker.log_objective(
-                    self.optimizer.param_groups[0]["lr"], ("LR",)
+                    self.optimizer.param_groups[0]["lr"],
+                    (
+                        "Training",
+                        "LR",
+                    ),
                 )
                 self.main_loop(
                     data_loader=self.data_loaders["train"],
@@ -290,6 +314,13 @@ class Trainer:
         test_result = self.test_final_model(epoch)
 
         copy_ensemble_param_to_buffer(self.model, self.config.ensemble_iteration)
+
+        if self.config.switch_teacher:
+            return (
+                test_result,
+                self.tracker.state_dict(),
+                self.teacher_model.state_dict(),
+            )
 
         return (
             test_result,

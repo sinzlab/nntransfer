@@ -65,7 +65,9 @@ def freeze_params(model, freeze=None, readout_name=""):
     else:
         to_freeze = freeze
     for name, param in model.named_parameters():
-        if to_freeze:
+        if to_freeze == "all":
+            freeze = True
+        elif to_freeze:
             freeze = False
             for freeze_key in to_freeze:
                 if freeze_key in name:

@@ -175,6 +175,7 @@ class BaseConfig(object):
             :obj:`Dict[str, any]`: Dictionary of all the attributes that make up this configuration instance,
         """
         output = copy.deepcopy(self.__dict__)
+        output["fn"] = self.fn
         return output
 
     def to_json_string(self):
