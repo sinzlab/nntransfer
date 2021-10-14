@@ -142,14 +142,15 @@ class ImageDatasetLoader:
     def add_corrupted_test(self, config, transform_test):
         c_test_datasets = None
         if config.add_corrupted_test:
-            urls = DATASET_URLS[config.dataset_cls + "-C"]
+            c_class =config.dataset_cls + "-C" if "-C" not in config.dataset_cls else config.dataset_cls
+            urls = DATASET_URLS[c_class]
             if not isinstance(urls, dict):
                 urls = {"default": urls}
             for key, url in urls.items():
                 dataset_dir = get_dataset(
                     url,
                     config.data_dir,
-                    dataset_cls=config.dataset_cls + "-C",
+                    dataset_cls=c_class,
                 )
 
                 c_test_datasets = {}
@@ -171,7 +172,7 @@ class ImageDatasetLoader:
                                 end=end,
                                 transform=transform_test,
                             )
-                    if config.dataset_cls in ("MNIST",):
+                    if config.dataset_cls in ("MNIST", "MNIST-C"):
                         if "finished" in c_category:
                             continue
                         c_test_datasets[c_category] = {
