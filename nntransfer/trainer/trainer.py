@@ -33,6 +33,7 @@ class Trainer:
     )
 
     def __init__(self, dataloaders, model, seed, uid, cb, **kwargs):
+        torch.autograd.set_detect_anomaly(True)
         self.config = TrainerConfig.from_dict(kwargs)
         print(self.config)
         self.uid = uid
