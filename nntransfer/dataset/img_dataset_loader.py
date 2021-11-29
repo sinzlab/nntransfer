@@ -173,7 +173,7 @@ class ImageDatasetLoader:
                                 transform=transform_test,
                             )
                     if config.dataset_cls in ("MNIST", "MNIST-C"):
-                        if "finished" in c_category:
+                        if "finished" in c_category or c_category != "translate":
                             continue
                         c_test_datasets[c_category] = {
                             1: NpyDataset(

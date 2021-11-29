@@ -40,6 +40,7 @@ class Trainer:
             model, gpu=(not self.config.force_cpu)
         )
         if self.config.student_model:
+            print("self.model", self.model)
             self.teacher_model = self.model
             model_fn = resolve_model(self.config.student_model["fn"])
             self.model = model_fn(dataloaders, seed, **self.config.student_model)
@@ -48,8 +49,6 @@ class Trainer:
             self.teacher_model.eval()
         else:
             self.teacher_model = None
-        print("Student: ", self.model)
-        print("Teacher: ", self.teacher_model)
         nnf.utility.nn_helpers.set_random_seed(seed)
         self.seed = seed
 
@@ -63,7 +62,9 @@ class Trainer:
         # Potentially freeze parts of the model
         freeze_params(self.model, self.config.freeze, self.config.readout_name)
 
-        if self.config.switch_teacher:
+        print("Student: ", self.model)
+        print("Teacher: ", self.teacher_model)
+        if self.config.switch_teacher:  # to use the teacher as the img-classification-model
             self.model, self.teacher_model = (
                 self.teacher_model,
                 self.model,
