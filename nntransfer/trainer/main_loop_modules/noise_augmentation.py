@@ -73,6 +73,8 @@ class NoiseAugmentation(MainLoopModule):
 
             noise augmented batch, tensor of standard deviations that were applied to each sample
         """
+        if not std and not snr:
+            return x, torch.zeros([x.shape[0], 1], device=device)
         if not in_place:
             x = x.clone()
         if len(x.shape) == 3:
