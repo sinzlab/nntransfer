@@ -64,4 +64,6 @@ class ImageDatasetConfig(DatasetConfig):
         filters = []
         if self.filter_classes:
             filters.append("ClassesFilter")
+        if self.examples_per_class:
+            filters.append("ExamplesFilter")
         return filters
