@@ -23,8 +23,6 @@ MAINTAINER Arne Nix <arnenix@gmail.com>
                                einops \
                                vit-pytorch
 
-    pip install --upgrade jupyterlab-vim
-
 %environment
     export SHELL=/usr/bin/zsh
 
