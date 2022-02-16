@@ -1,0 +1,35 @@
+name: nntransfer_env
+channels:
+  - pytorch
+  - conda-forge
+dependencies:
+  - cupy
+  - pkg-config
+  - compilers
+  - libjpeg-turbo
+  - opencv
+  - cudatoolkit=11.3
+  - numba
+  - blackcellmagic
+  - pytest
+  - pytest-cov
+  - numpy
+  - matplotlib
+  - scipy
+  - pandas
+  - jupyter
+  - scikit-learn
+  - scikit-image
+  - seaborn
+  - graphviz
+  - gpustat
+  - h5py
+  - gitpython
+  - Pillow==8.0.1
+  - jupyterlab
+  - datajoint==0.12.7
+  - ipykernel
+  - requests
+  - imageio
+  - scikit-image
+  - einops

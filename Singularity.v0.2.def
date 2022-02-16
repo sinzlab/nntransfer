@@ -1,0 +1,55 @@
+Bootstrap: docker
+
+From: continuumio/miniconda3
+
+%files
+    environment.yml
+
+%post
+    apt update && apt install -y \
+        build-essential \
+        git \
+        wget \
+        vim \
+        curl \
+        zip \
+        zlib1g-dev \
+        unzip \
+        pkg-config \
+        libblas-dev \
+        liblapack-dev \
+        python3-tk \
+        python3-wheel \
+        graphviz \
+        libhdf5-dev \
+        python3.9 \
+        python3.9-dev \
+        python3.9-distutils \
+        python3-testresources \
+        software-properties-common \
+        swig \
+        ffmpeg \
+        texlive-latex-extra \
+        texlive-fonts-recommended \
+        texlive-base \
+        dvipng
+         #zsh
+    apt-get clean
+
+    ln -s /usr/bin/python3.9 /usr/local/bin/python
+    ln -s /usr/bin/python3.9 /usr/local/bin/python3
+
+
+    /opt/conda/bin/conda env create -f environment.yml
+
+    /opt/conda/bin/conda run -n $(head -n 1 environment.yml | cut -f 2 -d ' ') pip install ffcv \
+        vit-pytorch \
+        torch==1.10.2+cu113 \
+        torchvision==0.11.3+cu113 \
+        torchaudio==0.10.2+cu113 \
+        -f https://download.pytorch.org/whl/cu113/torch_stable.html
+
+%runscript
+    exec /opt/conda/envs/$(head -n 1 environment.yml | cut -f 2 -d ' ')/bin/"$@"
+
+
