@@ -39,17 +39,49 @@ From: continuumio/miniconda3
     ln -s /usr/bin/python3.9 /usr/local/bin/python
     ln -s /usr/bin/python3.9 /usr/local/bin/python3
 
+    curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+    python3.9 get-pip.py
+    rm get-pip.py
+    python3.9 -m pip --no-cache-dir install --upgrade pip
 
-    /opt/conda/bin/conda env create -f environment.yml
+    python3.9 -m pip --no-cache-dir install \
+        blackcellmagic\
+        pytest \
+        pytest-cov \
+        numpy \
+        matplotlib \
+        scipy \
+        pandas \
+        jupyter \
+        scikit-learn \
+        scikit-image \
+        seaborn \
+        graphviz \
+        gpustat \
+        h5py \
+        gitpython \
+        Pillow==8.0.1 \
+        jupyterlab \
+        datajoint==0.12.7\
+        cupy \
+        pkg-config \
+        compilers \
+        cudatoolkit=11.3 \
+        numba \
+        ipykernel \
+        requests \
+        imageio \
+        scikit-image \
+        einops \
+        vit-pytorch
 
-    /opt/conda/bin/conda run -n $(head -n 1 environment.yml | cut -f 2 -d ' ') pip install ffcv \
-        vit-pytorch \
+    python3.9 -m pip --no-cache-dir  install \
         torch==1.10.2+cu113 \
         torchvision==0.11.3+cu113 \
         torchaudio==0.10.2+cu113 \
         -f https://download.pytorch.org/whl/cu113/torch_stable.html
 
 %runscript
-    exec /opt/conda/envs/$(head -n 1 environment.yml | cut -f 2 -d ' ')/bin/"$@"
+    exec "$@"
 
 
