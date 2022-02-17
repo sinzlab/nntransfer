@@ -4,6 +4,7 @@ from functools import partial
 from tqdm import tqdm
 import torch
 from torch import optim, nn
+from torch.cuda.amp import GradScaler, autocast
 
 import nnfabrik as nnf
 from nnfabrik.builder import resolve_model
@@ -37,14 +38,16 @@ class Trainer:
         print(self.config)
         self.uid = uid
         self.model, self.device = nnf.utility.nn_helpers.move_to_device(
-            model, gpu=(not self.config.force_cpu)
+            model, gpu=(not self.config.force_cpu), channels_last=self.config.use_ffcv
         )
         if self.config.student_model:
             print("self.model", self.model)
             self.teacher_model = self.model
             model_fn = resolve_model(self.config.student_model["fn"])
             self.model = model_fn(dataloaders, seed, **self.config.student_model)
-            self.model = self.model.to(self.device)
+            self.model, _ = nnf.utility.nn_helpers.move_to_device(
+                self.model, gpu=(not self.config.force_cpu), channels_last=self.config.use_ffcv
+            )
             freeze_params(self.teacher_model, "all")
             self.teacher_model.eval()
         else:
@@ -56,6 +59,8 @@ class Trainer:
         self.task_keys = dataloaders["train"].keys()
         self.optimizer, self.stop_closure, self.criterion = self.get_training_controls()
         self.lr_scheduler = self.prepare_lr_schedule()
+        if self.use_ffcv:
+            self.scaler = GradScaler()
 
         # Potentially reset parts of the model (after loading pretrained parameters)
         reset_params(self.model, self.config.reset)
@@ -209,30 +214,36 @@ class Trainer:
                 # print("Targets", task_key, targets)
                 shared_memory = {}  # e.g. to remember where which noise was applied
                 model_ = self.model
-                for module in self.main_loop_modules:
-                    model_, inputs = module.pre_forward(
-                        model_, inputs, task_key, shared_memory
-                    )
-                # Forward
-                outputs = model_(inputs)
 
-                # Post-Forward and Book-keeping
-                if return_outputs:
-                    collected_outputs.append(
-                        {k: v.detach().to("cpu") for k, v in outputs[0].items()}
-                    )
-                for module in self.main_loop_modules:
-                    outputs, loss, targets = module.post_forward(
-                        outputs, loss, targets, **shared_memory
-                    )
+                forward_context = autocast() if self.config.use_ffcv else nullcontext
+                with forward_context:
+                    for module in self.main_loop_modules:
+                        model_, inputs = module.pre_forward(
+                            model_, inputs, task_key, shared_memory
+                        )
+                    # Forward
+                    outputs = model_(inputs)
 
-                loss = self.compute_loss(mode, task_key, loss, outputs, targets)
+                    # Post-Forward and Book-keeping
+                    if return_outputs:
+                        collected_outputs.append(
+                            {k: v.detach().to("cpu") for k, v in outputs[0].items()}
+                        )
+                    for module in self.main_loop_modules:
+                        outputs, loss, targets = module.post_forward(
+                            outputs, loss, targets, **shared_memory
+                        )
+
+                    loss = self.compute_loss(mode, task_key, loss, outputs, targets)
+
                 if not self.config.show_epoch_progress or not mode not in (
                     "Validation",
                     "Training",
                 ):
                     self.tracker.display_log(tqdm_iterator=t, key=(mode,))
                 if train_mode:
+                    if self.config.use_ffcv:
+                        loss = self.scaler.scale(loss)
                     # Backward
                     if not (
                         self.config.ignore_main_loss
@@ -249,7 +260,11 @@ class Trainer:
                             self.tracker.display_log(
                                 tqdm_iterator=epoch_tqdm, key=(mode,)
                             )
-                        self.optimizer.step()
+                        if self.config.use_ffcv:
+                            self.scaler.step(self.optimizer)
+                            self.scaler.update()
+                        else:
+                            self.optimizer.step()
                         for module in self.main_loop_modules:
                             module.post_optimizer(self.model)
                         self.optimizer.zero_grad()
