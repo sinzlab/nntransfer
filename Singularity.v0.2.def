@@ -63,9 +63,6 @@ From: continuumio/miniconda3
         Pillow==8.0.1 \
         jupyterlab \
         datajoint==0.12.7\
-        pkg-config \
-        compilers \
-        numba \
         ipykernel \
         requests \
         imageio \
