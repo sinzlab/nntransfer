@@ -1,68 +1,24 @@
-Bootstrap: docker
+Bootstrap: oras
+From: ghcr.io/sinzlab/pytorch-singularity:v3.9-torch1.10.2-dj0.12.7.def
 
-From: continuumio/miniconda3
-
-%files
-    environment.yml
-
+%labels
+    MAINTAINER Arne Nix <arnenix@gmail.com>
 %post
-    apt update && apt install -y \
-        build-essential \
-        git \
-        wget \
-        vim \
-        curl \
-        zip \
-        zlib1g-dev \
-        unzip \
-        pkg-config \
-        libblas-dev \
-        liblapack-dev \
-        python3-tk \
-        python3-wheel \
-        graphviz \
-        libhdf5-dev \
-        python3.9 \
-        python3.9-dev \
-        python3.9-distutils \
-        python3-testresources \
-        software-properties-common \
-        swig \
-        ffmpeg \
-        texlive-latex-extra \
-        texlive-fonts-recommended \
-        texlive-base \
-        dvipng
-         #zsh
-    apt-get clean
+    # install third-party libraries
+    # needed for vim extension in jupyter and tex export in matplotlib:
+    apt update && apt install -y libturbojpeg \
+    libturbojpeg-dev \
+        libopencv-dev \
+                          python3-venv \
+                          zsh \
+         python3-opencv
+                          # texlive-latex-extra \
+                          # texlive-fonts-recommended \
+                          # texlive-base \
+                          # dvipng \
 
-    ln -s /usr/bin/python3.9 /usr/local/bin/python
-    ln -s /usr/bin/python3.9 /usr/local/bin/python3
-
-    curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
-    python3.9 get-pip.py
-    rm get-pip.py
-    python3.9 -m pip --no-cache-dir install --upgrade pip
 
     python3.9 -m pip --no-cache-dir install \
-        blackcellmagic\
-        pytest \
-        pytest-cov \
-        numpy \
-        matplotlib \
-        scipy \
-        pandas \
-        jupyter \
-        scikit-learn \
-        scikit-image \
-        seaborn \
-        graphviz \
-        gpustat \
-        h5py \
-        gitpython \
-        Pillow==8.0.1 \
-        jupyterlab \
-        datajoint==0.12.7\
         ipykernel \
         requests \
         imageio \
@@ -70,11 +26,6 @@ From: continuumio/miniconda3
         einops \
         vit-pytorch
 
-    python3.9 -m pip --no-cache-dir  install \
-        torch==1.10.2+cu113 \
-        torchvision==0.11.3+cu113 \
-        torchaudio==0.10.2+cu113 \
-        -f https://download.pytorch.org/whl/cu113/torch_stable.html
 
 %runscript
     exec "$@"

@@ -1,4 +1,5 @@
 import sys
+from contextlib import nullcontext
 from functools import partial
 
 from tqdm import tqdm
@@ -59,7 +60,7 @@ class Trainer:
         self.task_keys = dataloaders["train"].keys()
         self.optimizer, self.stop_closure, self.criterion = self.get_training_controls()
         self.lr_scheduler = self.prepare_lr_schedule()
-        if self.use_ffcv:
+        if self.config.use_ffcv:
             self.scaler = GradScaler()
 
         # Potentially reset parts of the model (after loading pretrained parameters)
@@ -215,7 +216,7 @@ class Trainer:
                 shared_memory = {}  # e.g. to remember where which noise was applied
                 model_ = self.model
 
-                forward_context = autocast() if self.config.use_ffcv else nullcontext
+                forward_context = autocast() if self.config.use_ffcv else nullcontext()
                 with forward_context:
                     for module in self.main_loop_modules:
                         model_, inputs = module.pre_forward(
