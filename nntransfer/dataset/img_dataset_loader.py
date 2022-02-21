@@ -29,7 +29,7 @@ DATASET_URLS = {
 
 import torchvision.transforms.functional as tF
 import random
-from typing import Sequence
+from typing import Sequence, Iterator
 
 
 class DiscreteRotateTransform:
@@ -269,7 +269,10 @@ class ImageDatasetLoader:
                 subset_split = int(np.floor(config.train_subset * len(train_idx)))
                 train_idx = train_idx[:subset_split]
             if config.shuffle:
-                train_sampler = SubsetRandomSampler(train_idx)
+                if config.data_repeats:
+                    train_sampler = SubsetRandomSamplerRepeat(train_idx, repeats=config.data_repeats)
+                else:
+                    train_sampler = SubsetRandomSampler(train_idx)
                 valid_sampler = SubsetRandomSampler(valid_idx)
             else:
                 train_dataset = Subset(train_dataset, train_idx)
@@ -342,3 +345,23 @@ class ImageDatasetLoader:
                 shuffle=True,
             )
         return data_loaders
+
+
+class SubsetRandomSamplerRepeat(SubsetRandomSampler):
+    r"""Samples elements randomly from a given list of indices, without replacement.
+
+    Args:
+        indices (sequence): a sequence of indices
+        generator (Generator): Generator used in sampling.
+    """
+    def __init__(self, indices: Sequence[int], generator=None, repeats: int=1) -> None:
+        super(SubsetRandomSamplerRepeat, self).__init__(indices, generator)
+        self.repeats = repeats
+
+    def __iter__(self) -> Iterator[int]:
+        for i in torch.randperm(len(self.indices), generator=self.generator):
+            for r in range(self.repeats):
+                yield self.indices[i]
+
+    def __len__(self) -> int:
+        return len(self.indices) * self.repeats
