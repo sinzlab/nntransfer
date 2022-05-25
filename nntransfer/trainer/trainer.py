@@ -331,6 +331,7 @@ class Trainer:
         test_result = self.test_final_model(epoch)
 
         copy_ensemble_param_to_buffer(self.model, self.config.ensemble_iteration)
+        print(self.model.state_dict().keys())
 
         if self.config.switch_teacher:
             return (

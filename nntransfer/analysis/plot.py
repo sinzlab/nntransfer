@@ -53,10 +53,10 @@ def plot(plot_function):
         if "talk" in style or "beamer" in style:
             sns.set_context("talk")
             font = "sans-serif"
-            small_fontsize = 13
-            xsmall_fontsize = 13
-            normal_fontsize = 14
-            large_fontsize = 17
+            small_fontsize = 14
+            xsmall_fontsize = 14
+            normal_fontsize = 15
+            large_fontsize = 16
         else:
             sns.set_context("paper")
             font = "serif"
@@ -106,7 +106,9 @@ def plot(plot_function):
             for i in range(len(ax)):
                 ax[i] = [ax[i]]
 
-        plt.grid(True, linestyle=":", linewidth=0.5)
+        for i in range(len(ax)):
+            for j in range(len(ax[i])):
+                ax[i][j].grid(True, linestyle=":", linewidth=0.8)
 
         # execute the actual plotting
         plot_function(*args, fig=fig, ax=ax, **kwargs)
@@ -215,11 +217,13 @@ def set_size(style, ratio=None, fraction=1, subplots=(1, 1), gridspec_kw=None):
 
 def save_plot(fig, name, types=("pgf", "pdf", "png")):
     for file_type in types:
+        fig.patch.set_alpha(0.0)
         fig.savefig(
             name + "." + file_type,
             facecolor=fig.get_facecolor(),
             edgecolor=fig.get_edgecolor(),
             bbox_inches="tight",
+            transparent=True
         )
     plt.close(fig)
 

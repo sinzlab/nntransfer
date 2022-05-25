@@ -27,10 +27,10 @@ class TrainerConfig(BaseConfig):
             "keep_selection": (),
         }
         self.keep_checkpoints: bool = False
-        self.patience: int = 10
+        self.patience: int = None
         self.threshold: float = 0.0001
         self.verbose: bool = False
-        self.lr_milestones: Tuple = (30, 60)
+        self.lr_milestones: Tuple = ()
         self.min_lr: float = 0.00001  # lr scheduler min learning rate
         self.threshold_mode: str = "rel"
         self.train_cycler: str = "LongCycler"
