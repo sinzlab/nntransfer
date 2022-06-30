@@ -94,6 +94,7 @@ From: ubuntu:21.10
         jupyterlab \
         ipykernel \
         opencv-python \
+        ffcv \
         datajoint==0.12.7
 
     conda run -n ffcv pip install -e /src/bias_transfer
@@ -101,7 +102,6 @@ From: ubuntu:21.10
     conda run -n ffcv pip install -e /src/nnfabrik
     conda run -n ffcv pip install -e /src/neuralpredictors
     conda run -n ffcv pip install -e /src/pytorch_warmup
-    conda run -n ffcv pip install -e /src/ffcv
 
     conda run -n ffcv python -m ipykernel install --user --name=ffcv
 

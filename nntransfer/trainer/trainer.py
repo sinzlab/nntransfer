@@ -57,6 +57,7 @@ class Trainer:
         self.seed = seed
 
         self.data_loaders = dataloaders
+        print(self.data_loaders["train"])
         self.task_keys = dataloaders["train"].keys()
         self.optimizer, self.stop_closure, self.criterion = self.get_training_controls()
         self.lr_scheduler = self.prepare_lr_schedule()
@@ -234,8 +235,15 @@ class Trainer:
                         outputs, loss, targets = module.post_forward(
                             outputs, loss, targets, **shared_memory
                         )
-
+                    if outputs.isinf().any():
+                        print(outputs)
+                        raise ValueError()
+                    if outputs.isnan().any():
+                        print(outputs)
+                        raise ValueError()
                     loss = self.compute_loss(mode, task_key, loss, outputs, targets)
+                    if loss.isnan():
+                        raise ValueError()
 
                 if not self.config.show_epoch_progress or not mode not in (
                     "Validation",
