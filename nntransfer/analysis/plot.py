@@ -26,7 +26,6 @@ def plot(plot_function):
         figure_heigh_scale = kwargs.pop("figure_height_scale", 1.0)
         tight = kwargs.pop("tight", False)
 
-
         fig = kwargs.pop("fig", None)
         ax = kwargs.pop("ax", None)
 
@@ -86,7 +85,7 @@ def plot(plot_function):
             nice_fonts["text.usetex"] = True
             nice_fonts["pgf.rcfonts"] = False
             nice_fonts["pgf.texsystem"] = "pdflatex"
-            mpl.rcParams['axes.unicode_minus'] = False
+            mpl.rcParams["axes.unicode_minus"] = False
             mpl.use("pgf")
         mpl.rcParams.update(nice_fonts)
 
@@ -129,9 +128,9 @@ def plot(plot_function):
         if title:
             fig.suptitle(title, fontsize=large_fontsize)
         if y_label:
-            plt.ylabel(y_label, fontsize=normal_fontsize)
+            ax[0][0].set_ylabel(y_label, fontsize=normal_fontsize)
         if x_label:
-            plt.xlabel(x_label, fontsize=normal_fontsize)
+            ax[0][0].set_xlabel(x_label, fontsize=normal_fontsize)
         if tight:
             fig.tight_layout()
         if rotate_x_labels:
@@ -223,7 +222,7 @@ def save_plot(fig, name, types=("pgf", "pdf", "png")):
             facecolor=fig.get_facecolor(),
             edgecolor=fig.get_edgecolor(),
             bbox_inches="tight",
-            transparent=True
+            transparent=True,
         )
     plt.close(fig)
 

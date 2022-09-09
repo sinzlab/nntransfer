@@ -51,8 +51,7 @@ def reset_params(model, reset=None):
             else:  # e.g. 1
                 model[layer].apply(weight_reset)
 
-
-def freeze_params(model, freeze=None, readout_name=""):
+def freeze_params(model, freeze=None, readout_name="", unfreeze=False):
     if not freeze:
         return
 
@@ -82,7 +81,7 @@ def freeze_params(model, freeze=None, readout_name=""):
                 "Please provide either to_freeze or not_to_freeze arguments!"
             )
         if freeze and param.requires_grad:
-            param.requires_grad = False
+            param.requires_grad = unfreeze
 
 
 def weight_reset(m, advanced_init=False, zero_init_residual=False):

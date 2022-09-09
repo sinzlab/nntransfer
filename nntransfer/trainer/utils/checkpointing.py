@@ -56,6 +56,7 @@ class RemoteCheckpointing(Checkpointing):
         )  # save model
 
     def restore(self, restore_only_state=False, action="last"):
+        print("Restoring...")
         loaded_state = {
             "maximize_score": self.maximize_score,
             "action": action,
@@ -69,6 +70,7 @@ class RemoteCheckpointing(Checkpointing):
             epoch=-1, model=self.model, state=loaded_state
         )  # load the last epoch if existing
         epoch = loaded_state.get("epoch", 0)
+        print(f"Restored epoch {epoch}")
         patience_counter = loaded_state.get("patience_counter", -1)
         return epoch, patience_counter
 
@@ -108,6 +110,8 @@ class LocalCheckpointing(Checkpointing):
         for chkpt in checkpoints:
             if not chkpt in keep_checkpoints:
                 os.remove(chkpt)
+
+        self.call_back()  # ping
 
     def restore(self, restore_only_state=False, action="last"):
         # list checkpoints:
@@ -162,7 +166,7 @@ class NoCheckpointing(Checkpointing):
         # prepare state save
 
     def save(self, epoch, score, patience_counter):
-        pass
+        self.call_back()  # ping
 
     def restore(self, restore_only_state=False, action="last"):
         return 0, -1
@@ -205,6 +209,7 @@ class TemporaryCheckpointing(Checkpointing):
         self.model_save = copy_state(self.model)
         self.scheduler_save = copy_state(self.scheduler) if self.scheduler else {}
         self.tracker_save = copy_state(self.tracker)
+        self.call_back()  # ping
 
     def restore(self, restore_only_state=False, action="last"):
         if self.epoch_save > -1:

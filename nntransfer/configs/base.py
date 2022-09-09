@@ -14,10 +14,10 @@ Description = namedtuple("Description", "name seed")
 
 
 class BaseConfig(object):
-    r""" Base class for all configuration classes.
-        Handles methods for loading/saving configurations, and interaction with nnfabrik.
+    r"""Base class for all configuration classes.
+    Handles methods for loading/saving configurations, and interaction with nnfabrik.
 
-        Originally inspired by https://github.com/huggingface/transformers/blob/master/src/transformers/configuration_utils.py
+    Originally inspired by https://github.com/huggingface/transformers/blob/master/src/transformers/configuration_utils.py
     """
 
     config_name = ""
@@ -29,8 +29,8 @@ class BaseConfig(object):
         self.comment = ""
         self.conditional_assignment()
 
-    def __setattr__(self, key, value):
-        if self.__getattribute__(key) is None:
+    def __setattr__(self, key, value, overwrite=False):
+        if self.__getattribute__(key) is None or overwrite:
             if isinstance(value, dict):
                 if value.get("DEFAULT EMPTY", False):
                     value = {}

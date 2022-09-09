@@ -38,21 +38,27 @@ class Trainer:
         self.config = TrainerConfig.from_dict(kwargs)
         print(self.config)
         self.uid = uid
+
         self.model, self.device = nnf.utility.nn_helpers.move_to_device(
-            model, gpu=(not self.config.force_cpu), channels_last=self.config.use_ffcv
+            model,
+            gpu=(not self.config.force_cpu),
+            channels_last=self.config.use_channels_last,
         )
         if self.config.student_model:
-            print("self.model", self.model)
             self.teacher_model = self.model
             model_fn = resolve_model(self.config.student_model["fn"])
             self.model = model_fn(dataloaders, seed, **self.config.student_model)
+
             self.model, _ = nnf.utility.nn_helpers.move_to_device(
-                self.model, gpu=(not self.config.force_cpu), channels_last=self.config.use_ffcv
+                self.model,
+                gpu=(not self.config.force_cpu),
+                channels_last=self.config.use_channels_last
             )
             freeze_params(self.teacher_model, "all")
             self.teacher_model.eval()
         else:
             self.teacher_model = None
+
         nnf.utility.nn_helpers.set_random_seed(seed)
         self.seed = seed
 
@@ -61,7 +67,7 @@ class Trainer:
         self.task_keys = dataloaders["train"].keys()
         self.optimizer, self.stop_closure, self.criterion = self.get_training_controls()
         self.lr_scheduler = self.prepare_lr_schedule()
-        if self.config.use_ffcv:
+        if self.config.use_amp:
             self.scaler = GradScaler()
 
         # Potentially reset parts of the model (after loading pretrained parameters)
@@ -69,9 +75,9 @@ class Trainer:
         # Potentially freeze parts of the model
         freeze_params(self.model, self.config.freeze, self.config.readout_name)
 
-        print("Student: ", self.model)
-        print("Teacher: ", self.teacher_model)
-        if self.config.switch_teacher:  # to use the teacher as the img-classification-model
+        if (
+            self.config.switch_teacher
+        ):  # to use the teacher as the img-classification-model
             self.model, self.teacher_model = (
                 self.teacher_model,
                 self.model,
@@ -194,6 +200,8 @@ class Trainer:
             train_mode=dropout_train_mode and (not self.config.deactivate_dropout),
         )
         collected_outputs = []
+        for module in self.main_loop_modules:
+            module.pre_epoch(self.model, mode, **module_options)
         data_cycler = globals().get(cycler)(data_loader, **cycler_args)
 
         with tqdm(
@@ -203,8 +211,6 @@ class Trainer:
             disable=self.config.show_epoch_progress,
             file=sys.stdout,
         ) as t, torch.enable_grad() if train_mode or record_grad else torch.no_grad():
-            for module in self.main_loop_modules:
-                module.pre_epoch(self.model, mode, **module_options)
             if train_mode:
                 self.optimizer.zero_grad()
             # Iterate over batches
@@ -217,12 +223,14 @@ class Trainer:
                 shared_memory = {}  # e.g. to remember where which noise was applied
                 model_ = self.model
 
-                forward_context = autocast() if self.config.use_ffcv else nullcontext()
+                forward_context = autocast() if self.config.use_amp else nullcontext()
                 with forward_context:
                     for module in self.main_loop_modules:
                         model_, inputs = module.pre_forward(
                             model_, inputs, task_key, shared_memory
                         )
+                    if shared_memory.get("break_epoch", False):
+                        break
                     # Forward
                     outputs = model_(inputs)
 
@@ -235,15 +243,7 @@ class Trainer:
                         outputs, loss, targets = module.post_forward(
                             outputs, loss, targets, **shared_memory
                         )
-                    if outputs.isinf().any():
-                        print(outputs)
-                        raise ValueError()
-                    if outputs.isnan().any():
-                        print(outputs)
-                        raise ValueError()
                     loss = self.compute_loss(mode, task_key, loss, outputs, targets)
-                    if loss.isnan():
-                        raise ValueError()
 
                 if not self.config.show_epoch_progress or not mode not in (
                     "Validation",
@@ -251,7 +251,7 @@ class Trainer:
                 ):
                     self.tracker.display_log(tqdm_iterator=t, key=(mode,))
                 if train_mode:
-                    if self.config.use_ffcv:
+                    if self.config.use_amp:
                         loss = self.scaler.scale(loss)
                     # Backward
                     if not (
@@ -269,7 +269,7 @@ class Trainer:
                             self.tracker.display_log(
                                 tqdm_iterator=epoch_tqdm, key=(mode,)
                             )
-                        if self.config.use_ffcv:
+                        if self.config.use_amp:
                             self.scaler.step(self.optimizer)
                             self.scaler.update()
                         else:
